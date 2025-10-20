@@ -1,0 +1,2 @@
+/* este comentario nunca termina
+long x;

@@ -1,0 +1,4 @@
+if (x > 10) then
+    write(x);
+else
+    read(x);

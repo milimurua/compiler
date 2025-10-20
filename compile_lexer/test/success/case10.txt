@@ -1,0 +1,4 @@
+// comentario de una línea
+/* comentario
+   de varias líneas */
+long _var = 1;
