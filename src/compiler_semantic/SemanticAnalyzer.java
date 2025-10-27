@@ -5,23 +5,20 @@ import compiler_lexer.TokenType;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Analizador semántico básico:
- * - Controla declaraciones duplicadas
- * - Controla uso de variables no declaradas
- * - Controla asignaciones con tipo incorrecto
- */
 public class SemanticAnalyzer {
 
     private final Map<String, String> symbolTable = new HashMap<>();
     private final String src;
 
-    public SemanticAnalyzer(String src) { this.src = src; }
+    public SemanticAnalyzer(String src) {
+        this.src = src;
+    }
 
     public void analyze() throws SemanticError {
-        System.out.println("Análisis semántico realizado");
+        System.out.println("Análisis semántico iniciado");
 
-        String[] lines = "\\r?\\n".split(src);
+        // Separar líneas (sin expresiones regulares)
+        String[] lines = src.replace("\r", "").split("\n");
         int lineNum = 0;
 
         for (String line : lines) {
@@ -30,33 +27,30 @@ public class SemanticAnalyzer {
 
             if (line.isEmpty() || line.startsWith("//") || line.startsWith("/*")) continue;
 
-            // --- Declaraciones ---
+            // Declaración de variables
             if (line.startsWith("int ") || line.startsWith("boolean ") ||
                     line.startsWith("long ") || line.startsWith("double ")) {
 
-                String type = "\\s+".split(line)[0];
+                int firstSpace = line.indexOf(' ');
+                String type = (firstSpace != -1) ? line.substring(0, firstSpace) : line;
                 String decl = line.substring(type.length()).trim();
 
                 if (decl.endsWith(";")) decl = decl.substring(0, decl.length() - 1);
 
-                String[] vars = decl.split(",");
+                String[] vars = decl.split(","); // literal, no regex
 
-                for (String v : vars) {
-                    String varName = v.trim();
-
-                    if (varName.contains("=")) {
-                        varName = varName.split("=")[0].trim();
-                    }
-
-                    Token idToken = new Token(TokenType.ID, varName, lineNum, 1);
-                    declareVariable(idToken, type);
+                for (String part : vars) {
+                    String varName = part.trim();
+                    if (varName.contains("=")) varName = varName.split("=")[0].trim();
+                    Token token = new Token(TokenType.ID, varName, lineNum, 1);
+                    declareVariable(token, type);
                 }
                 continue;
             }
 
-            // Asignación
+            // Asignaciones simples
             if (line.contains("=") && !line.contains("==")) {
-                String left = line.split("=")[0].trim();
+                String left = line.substring(0, line.indexOf('=')).trim();
                 left = left.replace("+", "").replace("-", "")
                         .replace("*", "").replace("/", "")
                         .replace(";", "").trim();
@@ -66,7 +60,7 @@ public class SemanticAnalyzer {
                 continue;
             }
 
-            // read/write
+            // Lectura o escritura
             if (line.startsWith("read(") || line.startsWith("write(")) {
                 int start = line.indexOf('(') + 1;
                 int end = line.indexOf(')');
@@ -81,28 +75,21 @@ public class SemanticAnalyzer {
         System.out.println("Análisis semántico completado sin errores");
     }
 
-    public void declareVariable(Token idToken, String type) {
-        String name = idToken.getLexeme();
+    public void declareVariable(Token idToken, String type) throws SemanticError {
+        String name = idToken.getLexeme().trim().replace(";", "");
 
         if (isReservedWord(name)) {
-            try {
-                error("No se puede usar palabra reservada como identificador: " + name, idToken);
-            } catch (SemanticError e) {
-                throw new RuntimeException(e);
-            }
+            error("No se puede usar palabra reservada como identificador: " + name, idToken);
             return;
         }
 
         if (symbolTable.containsKey(name)) {
-            try {
-                error("Variable ya declarada: " + name, idToken);
-            } catch (SemanticError e) {
-                throw new RuntimeException(e);
-            }
+            error("Variable ya declarada: " + name, idToken);
         } else {
             symbolTable.put(name, type);
         }
     }
+
 
     private boolean isReservedWord(String word) {
         String[] reserved = {
@@ -110,42 +97,31 @@ public class SemanticAnalyzer {
                 "int", "boolean", "long", "double", "true", "false"
         };
         for (String r : reserved) {
-            if (r.equals(word)) return true;
+            if (r.equalsIgnoreCase(word)) return true;
         }
         return false;
     }
 
-    public void useVariable(Token idToken) {
-        String name = idToken.getLexeme();
+    public void useVariable(Token idToken) throws SemanticError {
+        String name = idToken.getLexeme().trim().replace(";", "");
         if (!symbolTable.containsKey(name)) {
-            try {
-                error("Variable no declarada: " + name, idToken);
-            } catch (SemanticError e) {
-                throw new RuntimeException(e);
-            }
+            error("Variable no declarada: " + name, idToken);
         }
     }
 
-    public void assignVariable(Token idToken, String exprType) {
-        String name = idToken.getLexeme();
+    public void assignVariable(Token idToken, String exprType) throws SemanticError {
+        String name = idToken.getLexeme().trim().replace(";", "");
         if (!symbolTable.containsKey(name)) {
-            try {
-                error("Variable no declarada antes de asignar: " + name, idToken);
-            } catch (SemanticError e) {
-                throw new RuntimeException(e);
-            }
+            error("Variable no declarada antes de asignar: " + name, idToken);
             return;
         }
         String varType = symbolTable.get(name);
         if (!varType.equals(exprType)) {
-            try {
-                error("Tipos incompatibles: variable '" + name + "' es " + varType +
-                        " pero se intenta asignar " + exprType, idToken);
-            } catch (SemanticError e) {
-                throw new RuntimeException(e);
-            }
+            error("Tipos incompatibles: variable '" + name + "' es " + varType +
+                    " pero se intenta asignar " + exprType, idToken);
         }
     }
+
 
     private String inferType(String line) {
         if (line.contains("\"")) return "string";

@@ -9,7 +9,7 @@ import java.nio.file.*;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SemanticError {
 
         String[] folders = {"test/success", "test/error"};
 
@@ -30,7 +30,6 @@ public class Main {
 
                     boolean lexicalOK = false;
                     boolean syntacticOK = false;
-                    boolean semanticOK = false;
 
                     System.out.println("Análisis léxico:");
                     Scanner scanner = new Scanner(content);
@@ -69,16 +68,14 @@ public class Main {
                     try {
                         SemanticAnalyzer semantic = new SemanticAnalyzer(content);
                         semantic.analyze();
-                        semanticOK = true;
                         System.out.println("Semántico correcto");
                     } catch (SemanticError e) {
-                        System.out.println("Error semántico: " + e.getMessage());
+                        System.out.println(e.getMessage());
+                        System.out.println("Error semántico");
                     }
 
-                    if (semanticOK)
-                        System.out.println("Resultado final: TODAS LAS PRUEBAS PASARON");
-                    else
-                        System.out.println("Resultado final: hubo errores en alguna fase");
+
+                    System.out.println("Resultado final: hubo errores en alguna fase");
 
                 }
 

@@ -1,7 +1,9 @@
 package compiler_sintactic;
-import compiler_semantic.SemanticAnalyzer;
+
 import compiler_lexer.Token;
 import compiler_lexer.TokenType;
+import compiler_semantic.SemanticAnalyzer;
+import compiler_semantic.SemanticError;
 
 public class SyntacticAnalyzer {
 
@@ -13,7 +15,7 @@ public class SyntacticAnalyzer {
 
 
     public SyntacticAnalyzer(String src) {
-        this.src = src != null ? src : "";
+        this.src = src;
     }
 
     private boolean end() { return pos >= src.length(); }
@@ -75,7 +77,7 @@ public class SyntacticAnalyzer {
         }
     }
 
-    public void parseProgram() {
+    public void parseProgram() throws SemanticError {
         skip();
         if (end()) error("Archivo vacío o sin instrucciones válidas");
         while (!end()) {
@@ -84,7 +86,7 @@ public class SyntacticAnalyzer {
         }
     }
 
-    private void parseStatement() {
+    private void parseStatement() throws SemanticError {
         skip();
         if (starts("int") || starts("boolean") || starts("long") || starts("double")) { parseDecl(); return; }
         if (starts("if")) { parseIf(); return; }
@@ -99,7 +101,7 @@ public class SyntacticAnalyzer {
         else error("Se esperaba ';' al final de la sentencia");
     }
 
-    private void parseDecl() {
+    private void parseDecl() throws SemanticError {
         // Detectar tipo
         String type = null;
         if (starts("int")) { accept("int"); type = "int"; }
@@ -153,15 +155,7 @@ public class SyntacticAnalyzer {
         else error("Se esperaba ';'");
     }
 
-    private void parseType() {
-        if (starts("int")) accept("int");
-        else if (starts("boolean")) accept("boolean");
-        else if (starts("long")) accept("long");
-        else if (starts("double")) accept("double");
-        else error("Tipo no reconocido");
-    }
-
-    private void parseIf() {
+    private void parseIf() throws SemanticError {
         accept("if");
         skip();
         if (cur() == '(') { next(); parseExpression(); if (cur() == ')') next(); else error("Se esperaba ')'"); }
@@ -174,7 +168,7 @@ public class SyntacticAnalyzer {
         if (starts("else")) { accept("else"); skip(); parseStatement(); }
     }
 
-    private void parseWhile() {
+    private void parseWhile() throws SemanticError {
         accept("while");
         skip();
         if (cur() == '(') { next(); parseExpression(); if (cur() == ')') next(); else error("Se esperaba ')'"); }
@@ -203,7 +197,7 @@ public class SyntacticAnalyzer {
         if (cur() == ';') next();
     }
 
-    private void parseBlock() {
+    private void parseBlock() throws SemanticError {
         expect('{');
         skip();
         while (!end() && cur() != '}') {
