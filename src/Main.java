@@ -67,7 +67,7 @@ public class Main {
 
                     System.out.println("Análisis semántico:");
                     try {
-                        SemanticAnalyzer semantic = new SemanticAnalyzer();
+                        SemanticAnalyzer semantic = new SemanticAnalyzer(content);
                         semantic.analyze();
                         semanticOK = true;
                         System.out.println("Semántico correcto");

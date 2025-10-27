@@ -1,4 +1,7 @@
 package compiler_sintactic;
+import compiler_semantic.SemanticAnalyzer;
+import compiler_lexer.Token;
+import compiler_lexer.TokenType;
 
 public class SyntacticAnalyzer {
 
@@ -6,6 +9,8 @@ public class SyntacticAnalyzer {
     private int pos = 0;
     private int line = 1;
     private int col = 1;
+    private final SemanticAnalyzer semantic = new SemanticAnalyzer(src);
+
 
     public SyntacticAnalyzer(String src) {
         this.src = src != null ? src : "";
@@ -25,10 +30,11 @@ public class SyntacticAnalyzer {
         while (!end()) {
             char c = cur();
             if (Character.isWhitespace(c)) { next(); continue; }
-            if (c == '/' && peek(1) == '/') { while (!end() && cur() != '\n') next(); continue; }
-            if (c == '/' && peek(1) == '*') {
-                next(); next();
-                while (!end() && !(cur() == '*' && peek(1) == '/')) next();
+            if (c == '/' && peek() == '/') { while (!end() && cur() != '\n') next(); continue; }
+            if (c == '/' && peek() == '*') {
+                next();
+                do next();
+                while (!end() && !(cur() == '*' && peek() == '/'));
                 if (!end()) { next(); next(); }
                 continue;
             }
@@ -36,8 +42,8 @@ public class SyntacticAnalyzer {
         }
     }
 
-    private char peek(int a) {
-        int p = pos + a;
+    private char peek() {
+        int p = pos + 1;
         return p >= src.length() ? '\0' : src.charAt(p);
     }
 
@@ -94,17 +100,57 @@ public class SyntacticAnalyzer {
     }
 
     private void parseDecl() {
-        parseType();
+        // Detectar tipo
+        String type = null;
+        if (starts("int")) { accept("int"); type = "int"; }
+        else if (starts("boolean")) { accept("boolean"); type = "boolean"; }
+        else if (starts("long")) { accept("long"); type = "long"; }
+        else if (starts("double")) { accept("double"); type = "double"; }
+        else error("Tipo no reconocido");
+
         skip();
-        id();
+
+        // Leer identificador
+        StringBuilder name = new StringBuilder();
+        if (!Character.isLetter(cur()) && cur() != '_') error("Se esperaba identificador");
+        while (!end() && (Character.isLetterOrDigit(cur()) || cur() == '_')) {
+            name.append(cur());
+            next();
+        }
+
+        // Crear token para el analizador semántico
+        Token idToken = new Token(TokenType.ID, name.toString(), line, col);
+        semantic.declareVariable(idToken, type);
+
         skip();
-        while (cur() == ',') { next(); id(); skip(); }
+
+        // Declaraciones múltiples separadas por coma
+        while (cur() == ',') {
+            next();
+            skip();
+
+            StringBuilder nextName = new StringBuilder();
+            if (!Character.isLetter(cur()) && cur() != '_') error("Se esperaba identificador");
+            while (!end() && (Character.isLetterOrDigit(cur()) || cur() == '_')) {
+                nextName.append(cur());
+                next();
+            }
+
+            Token nextId = new Token(TokenType.ID, nextName.toString(), idToken.getLine(), idToken.getColumn());
+            semantic.declareVariable(nextId, type);
+
+            skip();
+        }
+
+        // Asignación opcional
         if (cur() == '=') {
             next();
             parseExpression();
         }
+
         skip();
         if (cur() == ';') next();
+        else error("Se esperaba ';'");
     }
 
     private void parseType() {
