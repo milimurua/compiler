@@ -1,8 +1,10 @@
-final class Token {
-    final TokenType type;
-    final String lexeme;
-    final int line;
-    final int column;
+package compiler_lexer;
+
+public class Token {
+    private TokenType type;
+    private String lexeme;
+    private int line;
+    private int column;
 
     public Token(TokenType type, String lexeme, int line, int column) {
         this.type = type;
@@ -13,6 +15,18 @@ final class Token {
 
     public TokenType getType() {
         return type;
+    }
+
+    public String getLexeme() {
+        return lexeme;
+    }
+
+    public int getLine() {
+        return line;
+    }
+
+    public int getColumn() {
+        return column;
     }
 
     @Override

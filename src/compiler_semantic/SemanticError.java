@@ -1,4 +1,4 @@
-package compile_semantic.src;
+package compiler_semantic;
 
 /**
  * Representa un error semántico detectado durante el análisis.

@@ -1,3 +1,7 @@
+package compiler_lexer;
+
+import java.io.FileReader;
+
 public class Scanner {
 
     private String src;
@@ -6,7 +10,7 @@ public class Scanner {
     private int column = 1;
 
     public Scanner(String src) {
-        this.src = src;
+        this.src = src != null ? src : "";
     }
 
     // Devuelve el carácter actual sin avanzar
@@ -109,14 +113,14 @@ public class Scanner {
             int startCol = column;
             next(); // consumir la comilla
 
-            String text = "";
+            StringBuilder text = new StringBuilder();
             while (peek() != '"' && peek() != '\0') {
                 char c = next();
                 if (c == '\n') {
                     // Si no se permiten saltos dentro de cadenas, sería error
                     return error("Cadena sin cierre", startLine, startCol);
                 }
-                text += c;
+                text.append(c);
             }
 
             if (peek() != '"') {
@@ -124,60 +128,64 @@ public class Scanner {
             }
 
             next(); // cerrar comillas
-            return new Token(TokenType.STRING_CONST, text, startLine, startCol);
+            return new Token(TokenType.STRING_CONST, text.toString(), startLine, startCol);
         }
 
         // Números
         if (Character.isDigit(peek())) {
             int startLine = line;
             int startCol = column;
-            String number = "";
+            StringBuilder number = new StringBuilder();
 
             while (Character.isDigit(peek())) {
-                number += next();
+                number.append(next());
+            }
+
+            if (Character.isLetter(peek()) || peek() == '_') {
+                return error("Identificador no puede comenzar con un número", startLine, startCol);
             }
 
             if (peek() == '.') {
-                number += next();
+                number.append(next());
                 if (!Character.isDigit(peek())) {
                     return error("Número real mal formado", startLine, startCol);
                 }
 
                 while (Character.isDigit(peek())) {
-                    number += next();
+                    number.append(next());
                 }
 
-                return new Token(TokenType.REAL_CONST, number, startLine, startCol);
+                return new Token(TokenType.REAL_CONST, number.toString(), startLine, startCol);
             }
 
-            return new Token(TokenType.INT_CONST, number, startLine, startCol);
+            return new Token(TokenType.INT_CONST, number.toString(), startLine, startCol);
         }
 
         // Identificadores y palabras reservadas
         if (Character.isLetter(peek()) || peek() == '_') {
             int startLine = line;
             int startCol = column;
-            String word = "";
+            StringBuilder word = new StringBuilder();
 
             while (Character.isLetterOrDigit(peek()) || peek() == '_') {
-                word += next();
+                word.append(next());
             }
 
-            switch (word) {
-                case "long": return new Token(TokenType.LONG, word, startLine, startCol);
-                case "double": return new Token(TokenType.DOUBLE, word, startLine, startCol);
-                case "if": return new Token(TokenType.IF, word, startLine, startCol);
-                case "then": return new Token(TokenType.THEN, word, startLine, startCol);
-                case "else": return new Token(TokenType.ELSE, word, startLine, startCol);
-                case "while": return new Token(TokenType.WHILE, word, startLine, startCol);
-                case "break": return new Token(TokenType.BREAK, word, startLine, startCol);
-                case "read": return new Token(TokenType.READ, word, startLine, startCol);
-                case "write": return new Token(TokenType.WRITE, word, startLine, startCol);
-                case "true": return new Token(TokenType.TRUE, word, startLine, startCol);
-                case "false": return new Token(TokenType.FALSE, word, startLine, startCol);
-            }
+            return switch (word.toString()) {
+                case "long" -> new Token(TokenType.LONG, word.toString(), startLine, startCol);
+                case "double" -> new Token(TokenType.DOUBLE, word.toString(), startLine, startCol);
+                case "if" -> new Token(TokenType.IF, word.toString(), startLine, startCol);
+                case "then" -> new Token(TokenType.THEN, word.toString(), startLine, startCol);
+                case "else" -> new Token(TokenType.ELSE, word.toString(), startLine, startCol);
+                case "while" -> new Token(TokenType.WHILE, word.toString(), startLine, startCol);
+                case "break" -> new Token(TokenType.BREAK, word.toString(), startLine, startCol);
+                case "read" -> new Token(TokenType.READ, word.toString(), startLine, startCol);
+                case "write" -> new Token(TokenType.WRITE, word.toString(), startLine, startCol);
+                case "true" -> new Token(TokenType.TRUE, word.toString(), startLine, startCol);
+                case "false" -> new Token(TokenType.FALSE, word.toString(), startLine, startCol);
+                default -> new Token(TokenType.ID, word.toString(), startLine, startCol);
+            };
 
-            return new Token(TokenType.ID, word, startLine, startCol);
         }
 
         // Operadores y símbolos
@@ -234,6 +242,8 @@ public class Scanner {
         if (c == '{') return new Token(TokenType.LBRACE, "{", startLine, startCol);
         if (c == '}') return new Token(TokenType.RBRACE, "}", startLine, startCol);
         if (c == ';') return new Token(TokenType.SEMICOLON, ";", startLine, startCol);
+        if (c == ',') return new Token(TokenType.COMMA, ",", startLine, startCol);
+
 
         // Si no se reconoce el símbolo
         return error("Símbolo no reconocido: '" + c + "'", startLine, startCol);
